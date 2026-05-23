@@ -17,7 +17,7 @@ export const Header = ({ settings, onSettingsClick, onHistoryClick, showHistoryB
             <Baby className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">宝宝头型记录</h1>
+            <h1 className="text-xl font-bold">宝宝成长记录</h1>
             {settings && (
               <p className="text-sm text-white/80">
                 出生日期: {settings.birthDate}

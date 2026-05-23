@@ -43,7 +43,7 @@ export const HomePage = ({ entries, onAddClick, onDelete }: HomePageProps) => {
       
       <button
         onClick={onAddClick}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all hover:scale-110"
+        className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all hover:scale-110"
         aria-label="添加记录"
       >
         <Plus className="w-7 h-7" />

@@ -14,6 +14,8 @@ interface AddEntryPageProps {
 export const AddEntryPage = ({ birthDate, onSave, onBack }: AddEntryPageProps) => {
   const [date, setDate] = useState('');
   const [photoBase64, setPhotoBase64] = useState('');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
   const { calculateDaysOld, formatDate, getTodayString } = useAgeCalculator();
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export const AddEntryPage = ({ birthDate, onSave, onBack }: AddEntryPageProps) =
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!photoBase64) {
+    if (!photoBase64 || !height || !weight) {
       return;
     }
 
@@ -34,13 +36,15 @@ export const AddEntryPage = ({ birthDate, onSave, onBack }: AddEntryPageProps) =
       date,
       photoBase64,
       daysOld,
+      height: parseFloat(height),
+      weight: parseFloat(weight),
       createdAt: new Date().toISOString(),
     };
 
     onSave(entry);
   };
 
-  const isFormValid = photoBase64 && date;
+  const isFormValid = photoBase64 && date && height && weight;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -86,6 +90,35 @@ export const AddEntryPage = ({ birthDate, onSave, onBack }: AddEntryPageProps) =
           <p className="text-sm text-gray-500 mt-2">
             {formatDate(date)} (距出生 {daysOld} 天)
           </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            身高 (cm)
+          </label>
+          <input
+            type="number"
+            value={height}
+            onChange={(e) => setHeight(e.target.value)}
+            placeholder="请输入身高"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            体重 (kg)
+          </label>
+          <input
+            type="number"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            placeholder="请输入体重"
+            step="0.1"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            required
+          />
         </div>
 
         <button

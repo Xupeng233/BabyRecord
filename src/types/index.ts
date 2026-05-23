@@ -3,6 +3,8 @@ export interface Entry {
   date: string;
   photoBase64: string;
   daysOld: number;
+  height?: number;
+  weight?: number;
   createdAt: string;
 }
 
