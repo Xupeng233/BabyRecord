@@ -1,7 +1,7 @@
 export interface Entry {
   id: string;
   date: string;
-  photoBase64: string;
+  photoUrls: string[];
   daysOld: number;
   height?: number;
   weight?: number;

@@ -6,10 +6,11 @@ interface HomePageProps {
   entries: Entry[];
   onAddClick: () => void;
   onDelete: (id: string) => void;
+  onEntryClick: (entry: Entry) => void;
   isLoggedIn: boolean;
 }
 
-export const HomePage = ({ entries, onAddClick, onDelete, isLoggedIn }: HomePageProps) => {
+export const HomePage = ({ entries, onAddClick, onDelete, onEntryClick, isLoggedIn }: HomePageProps) => {
   if (!isLoggedIn) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center h-full text-gray-400 pb-24">
@@ -51,6 +52,7 @@ export const HomePage = ({ entries, onAddClick, onDelete, isLoggedIn }: HomePage
               key={entry.id}
               entry={entry}
               onDelete={onDelete}
+              onClick={onEntryClick}
             />
           ))}
         </div>

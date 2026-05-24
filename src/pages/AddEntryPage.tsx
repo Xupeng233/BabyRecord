@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { PhotoUploader } from '../components/PhotoUploader';
+import { PhotoUploader, PendingPhoto } from '../components/PhotoUploader';
 import { DatePicker } from '../components/DatePicker';
 import { useAgeCalculator } from '../hooks/useAgeCalculator';
 import { Entry } from '../types';
 
 interface AddEntryPageProps {
   birthDate: string;
-  onSave: (entry: Entry) => void;
+  userId: string;
+  onSave: (entry: Omit<Entry, 'id' | 'createdAt'>, files: File[]) => void;
   onBack: () => void;
 }
 
-export const AddEntryPage = ({ birthDate, onSave, onBack }: AddEntryPageProps) => {
+export const AddEntryPage = ({ birthDate, userId, onSave, onBack }: AddEntryPageProps) => {
   const [date, setDate] = useState('');
-  const [photoBase64, setPhotoBase64] = useState('');
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const { calculateDaysOld, formatDate, getTodayString } = useAgeCalculator();
@@ -26,25 +27,23 @@ export const AddEntryPage = ({ birthDate, onSave, onBack }: AddEntryPageProps) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!photoBase64 || !height || !weight) {
+
+    if (!pendingPhotos.length || !height || !weight) {
       return;
     }
 
-    const entry: Entry = {
-      id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+    const entry: Omit<Entry, 'id' | 'createdAt'> = {
       date,
-      photoBase64,
+      photoUrls: [],
       daysOld,
       height: parseFloat(height),
       weight: parseFloat(weight),
-      createdAt: new Date().toISOString(),
     };
 
-    onSave(entry);
+    onSave(entry, pendingPhotos.map(p => p.file));
   };
 
-  const isFormValid = photoBase64 && date && height && weight;
+  const isFormValid = pendingPhotos.length > 0 && date && height && weight;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -76,8 +75,10 @@ export const AddEntryPage = ({ birthDate, onSave, onBack }: AddEntryPageProps) =
             上传照片
           </label>
           <PhotoUploader
-            onPhotoSelect={setPhotoBase64}
-            currentPhoto={photoBase64}
+            existingUrls={[]}
+            pendingPhotos={pendingPhotos}
+            onPendingChange={setPendingPhotos}
+            onPhotosChange={() => {}}
           />
         </div>
 

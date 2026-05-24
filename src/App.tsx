@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { HomePage } from './pages/HomePage';
 import { AddEntryPage } from './pages/AddEntryPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { EntryDetailPage } from './pages/EntryDetailPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { FamilyPage } from './pages/FamilyPage';
 import { BirthDateModal } from './components/BirthDateModal';
@@ -11,17 +12,22 @@ import { BottomTab, Tab } from './components/BottomTab';
 import { AuthPage } from './pages/AuthPage';
 import { supabase } from './lib/supabase';
 import { entriesService } from './lib/db';
+import { storageService } from './lib/storage';
 import { ToastMessage, Entry } from './types';
 
-type Page = 'home' | 'add' | 'family' | null;
+type Page = 'home' | 'add' | 'detail' | 'family' | null;
 
 function App() {
   const [currentTab, setCurrentTab] = useState<Tab>('home');
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [toastMessages, setToastMessages] = useState<ToastMessage[]>([]);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settings, setSettings] = useState<{ birthDate: string } | null>(null);
+  const [settings, setSettings] = useState<{ birthDate: string } | null>(() => {
+    const cached = localStorage.getItem('baby_settings');
+    return cached ? JSON.parse(cached) : null;
+  });
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +49,7 @@ function App() {
           loadEntries(session.user.id);
         } else {
           setSettings(null);
+          localStorage.removeItem('baby_settings');
           setEntries([]);
         }
       }
@@ -57,8 +64,13 @@ function App() {
       .select('birth_date')
       .eq('user_id', userId)
       .maybeSingle();
+    if (error) {
+      console.error('Load settings error:', error);
+    }
     if (data && !error) {
-      setSettings({ birthDate: data.birth_date });
+      const s = { birthDate: data.birth_date };
+      setSettings(s);
+      localStorage.setItem('baby_settings', JSON.stringify(s));
     }
   };
 
@@ -81,44 +93,85 @@ function App() {
   }, []);
 
   const handleSaveBirthDate = useCallback(async (birthDate: string) => {
-    if (!user) {
-      console.error('No user in handleSaveBirthDate');
-      return;
-    }
-    const { data, error } = await supabase
+    if (!user) return;
+    const { error } = await supabase
       .from('settings')
       .upsert({ user_id: user.id, birth_date: birthDate }, { onConflict: 'user_id' })
       .select();
     if (error) {
-      console.error('Save settings error:', error);
       addToast('保存失败，请重试', 'error');
     } else {
-      setSettings({ birthDate });
+      const s = { birthDate };
+      setSettings(s);
+      localStorage.setItem('baby_settings', JSON.stringify(s));
       addToast('出生日期设置成功');
     }
   }, [user, addToast]);
 
-  const handleSaveEntry = useCallback(async (entry: Omit<Entry, 'id' | 'createdAt'>) => {
+  const handleSaveEntry = useCallback(async (entry: Omit<Entry, 'id' | 'createdAt'>, files: File[]) => {
     if (!user) return;
+
+    const optimisticEntry: Entry = {
+      ...entry,
+      id: 'temp_' + Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+    setEntries(prev => [optimisticEntry, ...prev]);
+    setCurrentPage('home');
+
     try {
-      const newEntry = await entriesService.add(user.id, entry);
-      setEntries(prev => [newEntry, ...prev]);
-      addToast('记录保存成功');
-      setCurrentPage('home');
+      const urls = await storageService.uploadPhotos(user.id, files);
+      const entryWithUrls = { ...entry, photoUrls: urls };
+      const newEntry = await entriesService.add(user.id, entryWithUrls);
+      setEntries(prev => prev.map(e => e.id === optimisticEntry.id ? newEntry : e));
+      addToast('记录同步成功');
     } catch (err) {
-      addToast('保存失败，请重试', 'error');
+      console.error('Save entry error:', err);
+      setEntries(prev => prev.filter(e => e.id !== optimisticEntry.id));
+      addToast('记录同步失败，请重试', 'error');
+    }
+  }, [user, addToast]);
+
+  const handleUpdateEntry = useCallback(async (id: string, updates: Partial<Entry>, newFiles: File[]) => {
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    setCurrentPage(null);
+
+    try {
+      let finalUpdates = { ...updates };
+      if (newFiles.length > 0) {
+        const newUrls = await storageService.uploadPhotos(user.id, newFiles);
+        finalUpdates.photoUrls = [...(updates.photoUrls || []), ...newUrls];
+      }
+      const updated = await entriesService.update(id, finalUpdates);
+      setEntries(prev => prev.map(e => e.id === id ? updated : e));
+      addToast('修改同步成功');
+    } catch (err) {
+      console.error('Update entry error:', err);
+      addToast('修改同步失败，请重试', 'error');
     }
   }, [user, addToast]);
 
   const handleDeleteEntry = useCallback(async (id: string) => {
+    const entry = entries.find(e => e.id === id);
+    setEntries(prev => prev.filter(e => e.id !== id));
+    setCurrentPage(null);
+    setSelectedEntry(null);
+
     try {
       await entriesService.delete(id);
-      setEntries(prev => prev.filter(e => e.id !== id));
+      if (entry?.photoUrls?.length) {
+        storageService.deletePhotos(entry.photoUrls).catch(console.error);
+      }
       addToast('记录已删除');
     } catch (err) {
       addToast('删除失败，请重试', 'error');
     }
-  }, [addToast]);
+  }, [entries, addToast]);
+
+  const handleEntryClick = useCallback((entry: Entry) => {
+    setSelectedEntry(entry);
+    setCurrentPage('detail');
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -174,8 +227,25 @@ function App() {
       return (
         <AddEntryPage
           birthDate={settings.birthDate}
+          userId={user.id}
           onSave={handleSaveEntry}
           onBack={() => setCurrentPage('home')}
+        />
+      );
+    }
+
+    if (currentPage === 'detail' && selectedEntry) {
+      return (
+        <EntryDetailPage
+          entry={selectedEntry}
+          birthDate={settings.birthDate}
+          userId={user.id}
+          onSave={handleUpdateEntry}
+          onDelete={handleDeleteEntry}
+          onBack={() => {
+            setCurrentPage(null);
+            setSelectedEntry(null);
+          }}
         />
       );
     }
@@ -202,6 +272,7 @@ function App() {
             entries={entries}
             onAddClick={() => setCurrentPage('add')}
             onDelete={handleDeleteEntry}
+            onEntryClick={handleEntryClick}
             isLoggedIn={!!user}
           />
         </>
@@ -218,14 +289,11 @@ function App() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-800">宝宝成长记录</h1>
-                <p className="text-xs text-gray-500">成长历史</p>
+                <p className="text-xs text-gray-500">成长曲线</p>
               </div>
             </div>
           </header>
-          <HistoryPage
-            entries={entries}
-            onDelete={handleDeleteEntry}
-          />
+          <HistoryPage entries={entries} />
         </>
       );
     }
