@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Settings, LogOut, Baby, ChevronRight, User, Heart } from 'lucide-react';
+import { LogOut, Baby, ChevronRight, User, Heart, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Profile {
   babyName: string;
   babyGender: string;
-  parentName: string;
 }
 
 interface ProfilePageProps {
@@ -13,24 +12,28 @@ interface ProfilePageProps {
   userEmail: string;
   birthDate: string | null;
   entryCount: number;
-  onSettingsClick: () => void;
   onSignOut: () => void;
   onUpdateBirthDate: (date: string) => void;
+  onFamilyClick: () => void;
 }
+
+const PROFILE_FIELD_MAP: Record<string, string> = {
+  babyName: 'baby_name',
+  babyGender: 'baby_gender',
+};
 
 export const ProfilePage = ({
   userId,
   userEmail,
   birthDate,
   entryCount,
-  onSettingsClick,
   onSignOut,
   onUpdateBirthDate,
+  onFamilyClick,
 }: ProfilePageProps) => {
   const [profile, setProfile] = useState<Profile>({
     babyName: '',
     babyGender: '',
-    parentName: '',
   });
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
@@ -40,32 +43,38 @@ export const ProfilePage = ({
     loadProfile();
   }, [userId]);
 
+  useEffect(() => {
+    setNewBirthDate(birthDate || '');
+  }, [birthDate]);
+
   const loadProfile = async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('baby_name, baby_gender, parent_name')
+      .select('baby_name, baby_gender')
       .eq('user_id', userId)
       .maybeSingle();
     if (data) {
       setProfile({
         babyName: data.baby_name || '',
         babyGender: data.baby_gender || '',
-        parentName: data.parent_name || '',
       });
     }
   };
 
   const saveProfile = async (field: string, value: string) => {
+    const dbField = PROFILE_FIELD_MAP[field] || field;
+    setProfile((prev) => ({ ...prev, [field]: value }));
+    setEditingField(null);
     const { error } = await supabase
       .from('profiles')
       .upsert({
         user_id: userId,
-        [field]: value,
-      });
-    if (!error) {
-      setProfile((prev) => ({ ...prev, [field]: value }));
+        [dbField]: value,
+      }, { onConflict: 'user_id' });
+    if (error) {
+      console.error('Save profile error:', error);
+      loadProfile();
     }
-    setEditingField(null);
   };
 
   const startEditing = (field: string, currentValue: string) => {
@@ -127,9 +136,10 @@ export const ProfilePage = ({
                     onChange={(e) => setEditingValue(e.target.value)}
                     placeholder="请输入昵称"
                     className="text-sm text-gray-700 border border-gray-200 rounded-lg px-2 py-1 w-24"
+                    autoFocus
                   />
                   <button
-                    onClick={() => saveProfile('baby_name', editingValue)}
+                    onClick={() => saveProfile('babyName', editingValue)}
                     className="text-sm text-primary-600 font-medium"
                   >
                     保存
@@ -162,7 +172,7 @@ export const ProfilePage = ({
                   {genderOptions.map((opt) => (
                     <button
                       key={opt.value}
-                      onClick={() => saveProfile('baby_gender', opt.value)}
+                      onClick={() => saveProfile('babyGender', opt.value)}
                       className={`px-3 py-1 rounded-full text-sm ${
                         profile.babyGender === opt.value
                           ? 'bg-primary-100 text-primary-600'
@@ -191,44 +201,6 @@ export const ProfilePage = ({
                       ? '👧 女孩'
                       : '未设置'}
                   </span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-primary-500" />
-                <span className="text-sm text-gray-700">家长姓名</span>
-              </div>
-              {editingField === 'parentName' ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    placeholder="请输入姓名"
-                    className="text-sm text-gray-700 border border-gray-200 rounded-lg px-2 py-1 w-24"
-                  />
-                  <button
-                    onClick={() => saveProfile('parent_name', editingValue)}
-                    className="text-sm text-primary-600 font-medium"
-                  >
-                    保存
-                  </button>
-                  <button
-                    onClick={() => setEditingField(null)}
-                    className="text-sm text-gray-400"
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => startEditing('parentName', profile.parentName)}
-                  className="flex items-center gap-1 text-sm text-gray-500"
-                >
-                  <span>{profile.parentName || '未设置'}</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               )}
@@ -276,7 +248,7 @@ export const ProfilePage = ({
 
             <div className="px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-primary-500" />
+                <User className="w-5 h-5 text-primary-500" />
                 <span className="text-sm text-gray-700">记录数量</span>
               </div>
               <span className="text-sm text-gray-500">{entryCount} 条</span>
@@ -286,21 +258,25 @@ export const ProfilePage = ({
 
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-medium text-gray-500">账号设置</h3>
+            <h3 className="text-sm font-medium text-gray-500">家庭成员</h3>
           </div>
+          <button
+            onClick={onFamilyClick}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-primary-500" />
+              <span className="text-sm text-gray-700">家长信息</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
 
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-sm font-medium text-gray-500">账号</h3>
+          </div>
           <div className="divide-y divide-gray-100">
-            <button
-              onClick={onSettingsClick}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-gray-500" />
-                <span className="text-sm text-gray-700">应用设置</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </button>
-
             <button
               onClick={onSignOut}
               className="w-full px-4 py-3 flex items-center justify-between hover:bg-red-50 transition-colors"

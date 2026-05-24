@@ -6,9 +6,24 @@ interface HomePageProps {
   entries: Entry[];
   onAddClick: () => void;
   onDelete: (id: string) => void;
+  isLoggedIn: boolean;
 }
 
-export const HomePage = ({ entries, onAddClick, onDelete }: HomePageProps) => {
+export const HomePage = ({ entries, onAddClick, onDelete, isLoggedIn }: HomePageProps) => {
+  if (!isLoggedIn) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center h-full text-gray-400 pb-24">
+        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </div>
+        <p className="text-lg font-medium text-gray-500">暂无数据</p>
+        <p className="text-sm text-gray-400">请先登录账号</p>
+      </div>
+    );
+  }
+
   const sortedEntries = [...entries].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );

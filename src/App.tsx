@@ -4,6 +4,7 @@ import { HomePage } from './pages/HomePage';
 import { AddEntryPage } from './pages/AddEntryPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { FamilyPage } from './pages/FamilyPage';
 import { BirthDateModal } from './components/BirthDateModal';
 import { Toast } from './components/Toast';
 import { BottomTab, Tab } from './components/BottomTab';
@@ -12,9 +13,11 @@ import { supabase } from './lib/supabase';
 import { entriesService } from './lib/db';
 import { ToastMessage, Entry } from './types';
 
+type Page = 'home' | 'add' | 'family' | null;
+
 function App() {
   const [currentTab, setCurrentTab] = useState<Tab>('home');
-  const [currentPage, setCurrentPage] = useState<'home' | 'add' | null>('home');
+  const [currentPage, setCurrentPage] = useState<Page>('home');
   const [toastMessages, setToastMessages] = useState<ToastMessage[]>([]);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settings, setSettings] = useState<{ birthDate: string } | null>(null);
@@ -68,24 +71,6 @@ function App() {
     }
   };
 
-  const saveSettingsToSupabase = async (birthDate: string) => {
-    if (!user) {
-      console.error('No user found');
-      return false;
-    }
-    console.log('Saving settings:', { user_id: user.id, birth_date: birthDate });
-    const { data, error } = await supabase
-      .from('settings')
-      .upsert({ user_id: user.id, birth_date: birthDate })
-      .select();
-    if (error) {
-      console.error('Save settings error:', error);
-      return false;
-    }
-    console.log('Save settings success:', data);
-    return true;
-  };
-
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'success') => {
     const id = Date.now().toString();
     setToastMessages(prev => [...prev, { id, message, type }]);
@@ -102,7 +87,7 @@ function App() {
     }
     const { data, error } = await supabase
       .from('settings')
-      .upsert({ user_id: user.id, birth_date: birthDate })
+      .upsert({ user_id: user.id, birth_date: birthDate }, { onConflict: 'user_id' })
       .select();
     if (error) {
       console.error('Save settings error:', error);
@@ -195,20 +180,29 @@ function App() {
       );
     }
 
+    if (currentPage === 'family') {
+      return (
+        <FamilyPage
+          userId={user.id}
+          onBack={() => setCurrentPage(null)}
+        />
+      );
+    }
+
     if (currentTab === 'home') {
       return (
         <>
           <Header
             settings={settings}
-            onSettingsClick={() => setShowSettingsModal(true)}
+            onSettingsClick={() => setCurrentTab('profile')}
             onHistoryClick={() => setCurrentTab('growth')}
             showHistoryButton={entries.length > 0}
-            onSignOut={handleSignOut}
           />
           <HomePage
             entries={entries}
             onAddClick={() => setCurrentPage('add')}
             onDelete={handleDeleteEntry}
+            isLoggedIn={!!user}
           />
         </>
       );
@@ -242,12 +236,14 @@ function App() {
         userEmail={user?.email || ''}
         birthDate={settings?.birthDate || null}
         entryCount={entries.length}
-        onSettingsClick={() => setShowSettingsModal(true)}
         onSignOut={handleSignOut}
         onUpdateBirthDate={handleSaveBirthDate}
+        onFamilyClick={() => setCurrentPage('family')}
       />
     );
   };
+
+  const showBottomTab = currentPage === null || currentPage === 'home';
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -255,7 +251,7 @@ function App() {
         {renderContent()}
       </div>
 
-      {currentPage !== 'add' && (
+      {showBottomTab && (
         <BottomTab
           currentTab={currentTab}
           onTabChange={setCurrentTab}
