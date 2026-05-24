@@ -6,9 +6,10 @@ interface HeaderProps {
   onSettingsClick: () => void;
   onHistoryClick: () => void;
   showHistoryButton?: boolean;
+  onSignOut?: () => void;
 }
 
-export const Header = ({ settings, onSettingsClick, onHistoryClick, showHistoryButton = true }: HeaderProps) => {
+export const Header = ({ settings, onSettingsClick, onHistoryClick, showHistoryButton = true, onSignOut }: HeaderProps) => {
   return (
     <header className="bg-gradient-to-r from-primary-500 to-accent-500 text-white px-4 py-6 shadow-lg">
       <div className="flex items-center justify-between">
