@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface ImageViewerProps {
@@ -11,6 +11,21 @@ export const ImageViewer = ({ images, initialIndex = 0, onClose }: ImageViewerPr
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  useEffect(() => {
+    const preloadImages = () => {
+      const prevIndex = (currentIndex - 1 + images.length) % images.length;
+      const nextIndex = (currentIndex + 1) % images.length;
+      
+      [prevIndex, nextIndex].forEach(index => {
+        if (index !== currentIndex && images[index]) {
+          const img = new Image();
+          img.src = images[index];
+        }
+      });
+    };
+    preloadImages();
+  }, [currentIndex, images]);
 
   const goToNext = () => {
     setCurrentIndex((prev) => (prev + 1) % images.length);
@@ -98,6 +113,7 @@ export const ImageViewer = ({ images, initialIndex = 0, onClose }: ImageViewerPr
         )}
 
         <img
+          key={images[currentIndex]}
           src={images[currentIndex]}
           alt={`照片 ${currentIndex + 1}`}
           className="max-w-full max-h-full object-contain"

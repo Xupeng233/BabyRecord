@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { EditModal } from '../components/EditModal';
 
 interface Profile {
   fatherName: string;
@@ -34,8 +35,12 @@ export const FamilyPage = ({ userId, onBack }: FamilyPageProps) => {
     maternalGrandfatherName: '',
     maternalGrandmotherName: '',
   });
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentEditField, setCurrentEditField] = useState<{
+    title: string;
+    field: string;
+    placeholder?: string;
+  } | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -62,7 +67,6 @@ export const FamilyPage = ({ userId, onBack }: FamilyPageProps) => {
   const saveProfile = async (field: string, value: string) => {
     const dbField = FIELD_MAP[field] || field;
     setProfile((prev) => ({ ...prev, [field]: value }));
-    setEditingField(null);
     const { error } = await supabase
       .from('profiles')
       .upsert({
@@ -75,46 +79,21 @@ export const FamilyPage = ({ userId, onBack }: FamilyPageProps) => {
     }
   };
 
-  const startEditing = (field: string, currentValue: string) => {
-    setEditingField(field);
-    setEditingValue(currentValue);
+  const handleOpenEdit = (title: string, field: string, placeholder?: string) => {
+    setCurrentEditField({ title, field, placeholder });
+    setShowEditModal(true);
   };
 
   const renderEditField = (field: string, label: string) => (
     <div className="px-4 py-3 flex items-center justify-between">
       <span className="text-sm text-gray-700">{label}</span>
-      {editingField === field ? (
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={editingValue}
-            onChange={(e) => setEditingValue(e.target.value)}
-            placeholder={`请输入${label}`}
-            className="text-sm text-gray-700 border border-gray-200 rounded-lg px-2 py-1 w-28"
-            autoFocus
-          />
-          <button
-            onClick={() => saveProfile(field, editingValue)}
-            className="text-sm text-primary-600 font-medium whitespace-nowrap"
-          >
-            保存
-          </button>
-          <button
-            onClick={() => setEditingField(null)}
-            className="text-sm text-gray-400 whitespace-nowrap"
-          >
-            取消
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => startEditing(field, (profile as any)[field])}
-          className="flex items-center gap-1 text-sm text-gray-500"
-        >
-          <span>{(profile as any)[field] || '未设置'}</span>
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      )}
+      <button
+        onClick={() => handleOpenEdit(`修改${label}`, field, `请输入${label}`)}
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 transition-colors"
+      >
+        <span>{(profile as any)[field] || '未设置'}</span>
+        <ChevronRight className="w-4 h-4" />
+      </button>
     </div>
   );
 
@@ -158,6 +137,17 @@ export const FamilyPage = ({ userId, onBack }: FamilyPageProps) => {
           </div>
         </div>
       </div>
+
+      {showEditModal && currentEditField && (
+        <EditModal
+          isOpen={showEditModal}
+          title={currentEditField.title}
+          placeholder={currentEditField.placeholder}
+          currentValue={profile[currentEditField.field as keyof Profile] || ''}
+          onClose={() => setShowEditModal(false)}
+          onSave={(value) => saveProfile(currentEditField.field, value)}
+        />
+      )}
     </div>
   );
 };

@@ -18,6 +18,11 @@ import { ToastMessage, Entry } from './types';
 
 type Page = 'home' | 'add' | 'detail' | 'family' | null;
 
+interface Profile {
+  babyName: string;
+  babyGender: string;
+}
+
 function App() {
   const [currentTab, setCurrentTab] = useState<Tab>('home');
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -26,6 +31,10 @@ function App() {
   const [settings, setSettings] = useState<{ birthDate: string } | null>(() => {
     const cached = localStorage.getItem('baby_settings');
     return cached ? JSON.parse(cached) : null;
+  });
+  const [profile, setProfile] = useState<Profile>(() => {
+    const cached = localStorage.getItem('baby_profile');
+    return cached ? JSON.parse(cached) : { babyName: '', babyGender: '' };
   });
   const [entries, setEntries] = useState<Entry[]>(() => {
     const cached = localStorage.getItem('baby_entries');
@@ -40,6 +49,7 @@ function App() {
       setUser(session?.user ?? null);
       if (session?.user) {
         loadSettings(session.user.id);
+        loadProfile(session.user.id);
         loadEntries(session.user.id);
       }
       setLoading(false);
@@ -50,10 +60,13 @@ function App() {
         setUser(session?.user ?? null);
         if (session?.user) {
           loadSettings(session.user.id);
+          loadProfile(session.user.id);
           loadEntries(session.user.id);
         } else {
           setSettings(null);
           localStorage.removeItem('baby_settings');
+          setProfile({ babyName: '', babyGender: '' });
+          localStorage.removeItem('baby_profile');
           setEntries([]);
         }
       }
@@ -61,6 +74,22 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const loadProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('baby_name, baby_gender')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (data) {
+      const p = {
+        babyName: data.baby_name || '',
+        babyGender: data.baby_gender || '',
+      };
+      setProfile(p);
+      localStorage.setItem('baby_profile', JSON.stringify({ userId, ...p }));
+    }
+  };
 
   const loadSettings = async (userId: string) => {
     const { data, error } = await supabase
@@ -194,6 +223,7 @@ function App() {
     await supabase.auth.signOut();
     setUser(null);
     setSettings(null);
+    setProfile({ babyName: '', babyGender: '' });
     setEntries([]);
     localStorage.removeItem('baby_settings');
     localStorage.removeItem('baby_entries');
@@ -201,6 +231,27 @@ function App() {
     setCurrentTab('home');
     setCurrentPage('home');
   }, []);
+
+  const handleUpdateProfile = useCallback(async (babyName: string) => {
+    if (!user) return;
+    const newProfile = { ...profile, babyName };
+    setProfile(newProfile);
+    localStorage.setItem('baby_profile', JSON.stringify({ userId: user.id, ...newProfile }));
+    
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: user.id,
+        baby_name: babyName,
+      }, { onConflict: 'user_id' });
+    if (error) {
+      console.error('Update profile error:', error);
+      addToast('保存失败，请重试', 'error');
+      loadProfile(user.id);
+    } else {
+      addToast('昵称修改成功');
+    }
+  }, [user, profile, addToast]);
 
   if (loading) {
     return (
@@ -284,6 +335,7 @@ function App() {
         <>
           <Header
             settings={settings}
+            babyName={profile.babyName}
             onSettingsClick={() => setCurrentTab('profile')}
             onHistoryClick={() => setCurrentTab('growth')}
             showHistoryButton={entries.length > 0}
@@ -328,6 +380,7 @@ function App() {
         onSignOut={handleSignOut}
         onUpdateBirthDate={handleSaveBirthDate}
         onFamilyClick={() => setCurrentPage('family')}
+        onUpdateBabyName={handleUpdateProfile}
       />
     );
   };

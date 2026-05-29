@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { LogOut, Baby, ChevronRight, User, Heart, Users } from 'lucide-react';
+import { LogOut, Baby, ChevronRight, User, Heart, Users, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { EditModal } from '../components/EditModal';
 
 interface Profile {
   babyName: string;
@@ -15,6 +16,7 @@ interface ProfilePageProps {
   onSignOut: () => void;
   onUpdateBirthDate: (date: string) => void;
   onFamilyClick: () => void;
+  onUpdateBabyName: (name: string) => void;
 }
 
 const PROFILE_FIELD_MAP: Record<string, string> = {
@@ -32,9 +34,10 @@ export const ProfilePage = ({
   onSignOut,
   onUpdateBirthDate,
   onFamilyClick,
+  onUpdateBabyName,
 }: ProfilePageProps) => {
   const [profile, setProfile] = useState<Profile>(() => {
-    const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+    const cached = localStorage.getItem('baby_profile');
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed.userId === userId) {
@@ -49,6 +52,14 @@ export const ProfilePage = ({
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [newBirthDate, setNewBirthDate] = useState(birthDate || '');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentEditField, setCurrentEditField] = useState<{
+    title: string;
+    field: string;
+    placeholder?: string;
+    type?: 'text' | 'select';
+    options?: Array<{ label: string; value: string; emoji?: string }>;
+  } | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -109,25 +120,50 @@ export const ProfilePage = ({
     { label: '女孩', value: 'female', emoji: '👧' },
   ];
 
+  const handleOpenEdit = (
+    title: string,
+    field: string,
+    placeholder?: string,
+    type: 'text' | 'select' = 'text',
+    options?: Array<{ label: string; value: string; emoji?: string }>
+  ) => {
+    setCurrentEditField({ title, field, placeholder, type, options });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = (value: string) => {
+    if (!currentEditField) return;
+    
+    if (currentEditField.field === 'babyName') {
+      onUpdateBabyName(value);
+    } else {
+      saveProfile(currentEditField.field, value);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-primary-500 to-accent-500 px-6 pt-12 pb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
             {profile.babyGender === 'male' ? (
-              <span className="text-3xl">👦</span>
+              <span className="text-2xl">👦</span>
             ) : profile.babyGender === 'female' ? (
-              <span className="text-3xl">👧</span>
+              <span className="text-2xl">👧</span>
             ) : (
-              <span className="text-3xl">👶</span>
+              <span className="text-2xl">👶</span>
             )}
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">
+          <button
+            onClick={() => handleOpenEdit('修改昵称', 'babyName', '请输入宝宝昵称')}
+            className="flex-1 text-left hover:opacity-80 transition-opacity"
+          >
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
               {profile.babyName || '宝宝成长记录'}
+              <Pencil className="w-4 h-4 text-white/70" />
             </h2>
             <p className="text-sm text-white/80 mt-1">{userEmail}</p>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -143,38 +179,13 @@ export const ProfilePage = ({
                 <Baby className="w-5 h-5 text-primary-500" />
                 <span className="text-sm text-gray-700">宝宝昵称</span>
               </div>
-              {editingField === 'babyName' ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    placeholder="请输入昵称"
-                    className="text-sm text-gray-700 border border-gray-200 rounded-lg px-2 py-1 w-24"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => saveProfile('babyName', editingValue)}
-                    className="text-sm text-primary-600 font-medium"
-                  >
-                    保存
-                  </button>
-                  <button
-                    onClick={() => setEditingField(null)}
-                    className="text-sm text-gray-400"
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => startEditing('babyName', profile.babyName)}
-                  className="flex items-center gap-1 text-sm text-gray-500"
-                >
-                  <span>{profile.babyName || '未设置'}</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                onClick={() => handleOpenEdit('修改昵称', 'babyName', '请输入宝宝昵称')}
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 transition-colors"
+              >
+                <span>{profile.babyName || '未设置'}</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="px-4 py-3 flex items-center justify-between">
@@ -182,43 +193,19 @@ export const ProfilePage = ({
                 <Heart className="w-5 h-5 text-primary-500" />
                 <span className="text-sm text-gray-700">宝宝性别</span>
               </div>
-              {editingField === 'babyGender' ? (
-                <div className="flex items-center gap-2">
-                  {genderOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => saveProfile('babyGender', opt.value)}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        profile.babyGender === opt.value
-                          ? 'bg-primary-100 text-primary-600'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {opt.emoji} {opt.label}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setEditingField(null)}
-                    className="text-sm text-gray-400 ml-1"
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => startEditing('babyGender', profile.babyGender)}
-                  className="flex items-center gap-1 text-sm text-gray-500"
-                >
-                  <span>
-                    {profile.babyGender === 'male'
-                      ? '👦 男孩'
-                      : profile.babyGender === 'female'
-                      ? '👧 女孩'
-                      : '未设置'}
-                  </span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                onClick={() => handleOpenEdit('选择性别', 'babyGender', undefined, 'select', genderOptions)}
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 transition-colors"
+              >
+                <span>
+                  {profile.babyGender === 'male'
+                    ? '👦 男孩'
+                    : profile.babyGender === 'female'
+                    ? '👧 女孩'
+                    : '未设置'}
+                </span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="px-4 py-3 flex items-center justify-between">
@@ -226,39 +213,16 @@ export const ProfilePage = ({
                 <Baby className="w-5 h-5 text-primary-500" />
                 <span className="text-sm text-gray-700">出生日期</span>
               </div>
-              {editingField === 'birthDate' ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={newBirthDate}
-                    onChange={(e) => setNewBirthDate(e.target.value)}
-                    className="text-sm text-gray-700 border border-gray-200 rounded-lg px-2 py-1"
-                  />
-                  <button
-                    onClick={handleSaveBirthDate}
-                    className="text-sm text-primary-600 font-medium"
-                  >
-                    保存
-                  </button>
-                  <button
-                    onClick={() => setEditingField(null)}
-                    className="text-sm text-gray-400"
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setNewBirthDate(birthDate || '');
-                    setEditingField('birthDate');
-                  }}
-                  className="flex items-center gap-1 text-sm text-gray-500"
-                >
-                  <span>{birthDate || '未设置'}</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setNewBirthDate(birthDate || '');
+                  setEditingField('birthDate');
+                }}
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 transition-colors"
+              >
+                <span>{birthDate || '未设置'}</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="px-4 py-3 flex items-center justify-between">
@@ -309,6 +273,19 @@ export const ProfilePage = ({
           宝宝成长记录 v1.0.0
         </p>
       </div>
+
+      {showEditModal && currentEditField && (
+        <EditModal
+          isOpen={showEditModal}
+          title={currentEditField.title}
+          placeholder={currentEditField.placeholder}
+          currentValue={profile[currentEditField.field as keyof Profile] || ''}
+          type={currentEditField.type}
+          options={currentEditField.options}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 };
