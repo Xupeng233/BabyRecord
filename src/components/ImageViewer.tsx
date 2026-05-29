@@ -46,16 +46,23 @@ export const ImageViewer = ({ images, initialIndex = 0, onClose }: ImageViewerPr
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 bottom-0 bg-black z-[100] flex flex-col"
+      className="fixed inset-0 bg-black z-[100] flex flex-col"
       style={{
-        height: window.innerHeight,
-        width: window.innerWidth,
         overscrollBehavior: 'none',
-        touchAction: 'none'
+        touchAction: 'none',
+        margin: 0,
+        padding: 0,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh'
       }}
       onClick={onClose}
     >
-      <div className="flex items-center justify-between px-4 py-3 bg-black/50 shrink-0">
+      <div className="flex items-center justify-between px-4 pb-3 pt-2 bg-black/50 shrink-0">
         <div className="text-white text-sm">
           {currentIndex + 1} / {images.length}
         </div>
