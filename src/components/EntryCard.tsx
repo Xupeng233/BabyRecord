@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Trash2, ChevronRight, X } from 'lucide-react';
 import { Entry } from '../types';
 import { useAgeCalculator } from '../hooks/useAgeCalculator';
@@ -25,12 +25,20 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
     e.stopPropagation();
     setCurrentImageIndex(index);
     setShowImageViewer(true);
+    document.body.style.overflow = 'hidden';
   };
 
   const closeImageViewer = () => {
     setShowImageViewer(false);
     setCurrentImageIndex(0);
+    document.body.style.overflow = '';
   };
+
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   const goToNextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % photos.length);
@@ -73,17 +81,14 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
         {photos.length > 0 && (
           <div className="relative">
             <div 
-              className="flex overflow-x-auto gap-2 p-3 pb-0 scrollbar-hide snap-x snap-mandatory"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="flex overflow-x-auto gap-2 p-3 pb-0 scrollbar-hide"
+              style={{ WebkitOverflowScrolling: 'touch', overflowX: 'auto' }}
               onClick={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
             >
               {displayPhotos.map((url, index) => (
                 <div
                   key={index}
-                  className={`flex-shrink-0 w-28 h-28 rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative snap-start ${
+                  className={`flex-shrink-0 w-28 h-28 rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative ${
                     index === MAX_PHOTOS - 1 && remainingCount > 0 ? 'relative' : ''
                   }`}
                   onClick={(e) => handlePhotoClick(index, e)}
@@ -150,8 +155,20 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
 
       {showImageViewer && (
         <div
-          className="fixed inset-0 bg-black z-[100] flex flex-col"
-          style={{ height: '100dvh' }}
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black z-[100] flex flex-col"
+          style={{ 
+            height: window.innerHeight,
+            width: window.innerWidth,
+            overscrollBehavior: 'none',
+            touchAction: 'none',
+            position: 'fixed',
+            top: '-env(safe-area-inset-top)',
+            left: 0,
+            right: 0,
+            bottom: '-env(safe-area-inset-bottom)',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)'
+          }}
           onClick={closeImageViewer}
         >
           <div className="flex items-center justify-between px-4 py-3 bg-black/50 shrink-0">
@@ -174,16 +191,49 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
             onTouchEnd={handleTouchEnd}
             onClick={(e) => e.stopPropagation()}
           >
+            {photos.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToPrevImage();
+                }}
+                className="absolute left-4 p-3 text-white hover:bg-white/20 rounded-full transition-colors z-10"
+                aria-label="上一张"
+              >
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+
             <img
               src={photos[currentImageIndex]}
               alt={`照片 ${currentImageIndex + 1}`}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />
+
+            {photos.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToNextImage();
+                }}
+                className="absolute right-4 p-3 text-white hover:bg-white/20 rounded-full transition-colors z-10"
+                aria-label="下一张"
+              >
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {photos.length > 1 && (
-            <div className="flex justify-center gap-2 py-4 bg-black/50 shrink-0">
+            <div 
+              className="absolute left-0 right-0 flex justify-center gap-2"
+              style={{ bottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
+            >
               {photos.map((_, index) => (
                 <button
                   key={index}
