@@ -26,7 +26,10 @@ function App() {
     const cached = localStorage.getItem('baby_settings');
     return cached ? JSON.parse(cached) : null;
   });
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const [entries, setEntries] = useState<Entry[]>(() => {
+    const cached = localStorage.getItem('baby_entries');
+    return cached ? JSON.parse(cached) : [];
+  });
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +81,7 @@ function App() {
     try {
       const data = await entriesService.getAll(userId);
       setEntries(data);
+      localStorage.setItem('baby_entries', JSON.stringify(data));
     } catch (err) {
       console.error('Failed to load entries:', err);
     }
@@ -116,24 +120,32 @@ function App() {
       id: 'temp_' + Date.now(),
       createdAt: new Date().toISOString(),
     };
-    setEntries(prev => [optimisticEntry, ...prev]);
+    const newEntries = [optimisticEntry, ...entries];
+    setEntries(newEntries);
+    localStorage.setItem('baby_entries', JSON.stringify(newEntries));
     setCurrentPage('home');
 
     try {
       const urls = await storageService.uploadPhotos(user.id, files);
       const entryWithUrls = { ...entry, photoUrls: urls };
       const newEntry = await entriesService.add(user.id, entryWithUrls);
-      setEntries(prev => prev.map(e => e.id === optimisticEntry.id ? newEntry : e));
+      const updatedEntries = entries.map(e => e.id === optimisticEntry.id ? newEntry : e);
+      setEntries(updatedEntries);
+      localStorage.setItem('baby_entries', JSON.stringify(updatedEntries));
       addToast('记录同步成功');
     } catch (err) {
       console.error('Save entry error:', err);
-      setEntries(prev => prev.filter(e => e.id !== optimisticEntry.id));
+      const filteredEntries = entries.filter(e => e.id !== optimisticEntry.id);
+      setEntries(filteredEntries);
+      localStorage.setItem('baby_entries', JSON.stringify(filteredEntries));
       addToast('记录同步失败，请重试', 'error');
     }
-  }, [user, addToast]);
+  }, [user, addToast, entries]);
 
   const handleUpdateEntry = useCallback(async (id: string, updates: Partial<Entry>, newFiles: File[]) => {
-    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    const updatedEntries = entries.map(e => e.id === id ? { ...e, ...updates } : e);
+    setEntries(updatedEntries);
+    localStorage.setItem('baby_entries', JSON.stringify(updatedEntries));
     setCurrentPage(null);
 
     try {
@@ -143,17 +155,21 @@ function App() {
         finalUpdates.photoUrls = [...(updates.photoUrls || []), ...newUrls];
       }
       const updated = await entriesService.update(id, finalUpdates);
-      setEntries(prev => prev.map(e => e.id === id ? updated : e));
+      const syncedEntries = entries.map(e => e.id === id ? updated : e);
+      setEntries(syncedEntries);
+      localStorage.setItem('baby_entries', JSON.stringify(syncedEntries));
       addToast('修改同步成功');
     } catch (err) {
       console.error('Update entry error:', err);
       addToast('修改同步失败，请重试', 'error');
     }
-  }, [user, addToast]);
+  }, [user, addToast, entries]);
 
   const handleDeleteEntry = useCallback(async (id: string) => {
     const entry = entries.find(e => e.id === id);
-    setEntries(prev => prev.filter(e => e.id !== id));
+    const filteredEntries = entries.filter(e => e.id !== id);
+    setEntries(filteredEntries);
+    localStorage.setItem('baby_entries', JSON.stringify(filteredEntries));
     setCurrentPage(null);
     setSelectedEntry(null);
 
