@@ -34,33 +34,14 @@ const formatBirthDate = (birthDate: string): string => {
 };
 
 export const Header = ({ settings, onSettingsClick, onHistoryClick, showHistoryButton = true }: HeaderProps) => {
-  const daysOld = settings?.birthDate ? calculateDaysOld(settings.birthDate) : 0;
-  const currentDate = formatCurrentDate();
-  const birthDateFormatted = settings?.birthDate ? formatBirthDate(settings.birthDate) : '';
-
   return (
-    <header className="bg-gradient-to-r from-primary-500 to-accent-500 text-white px-4 py-6 shadow-lg">
+    <header className="bg-gradient-to-r from-primary-500 to-accent-500 text-white px-4 py-4 shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-            <Baby className="w-7 h-7" />
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+            <Baby className="w-6 h-6" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold">宝宝成长记录</h1>
-            {settings && (
-              <>
-                <p className="text-sm text-white/80 mt-1">
-                  出生时间：{birthDateFormatted}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-white/80">当前时间：{currentDate}</span>
-                  <span className="text-sm text-white font-medium bg-white/20 px-2 py-0.5 rounded-full">
-                    {daysOld}天
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
+          <h1 className="text-xl font-bold">宝宝成长记录</h1>
         </div>
         <div className="flex items-center gap-2">
           {showHistoryButton && (

@@ -117,28 +117,33 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
 
       {showImageViewer && (
         <div
-          className="fixed inset-0 bg-black/95 z-[100] flex flex-col items-center justify-center touch-none"
+          className="fixed inset-0 bg-black z-[100] flex flex-col touch-none h-screen h-[100dvh]"
           onClick={closeImageViewer}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={closeImageViewer}
-            className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-full transition-colors z-10"
-            aria-label="关闭"
-          >
-            <X className="w-8 h-8" />
-          </button>
+          <div className="flex items-center justify-between px-4 py-3 bg-black/50">
+            <div className="text-white text-sm">
+              {currentImageIndex + 1} / {photos.length}
+            </div>
+            <button
+              onClick={closeImageViewer}
+              className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+              aria-label="关闭"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
 
-          <div className="flex-1 flex items-center justify-center w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="flex-1 flex items-center justify-center relative" onClick={(e) => e.stopPropagation()}>
             {photos.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   goToPrevImage();
                 }}
-                className="absolute left-4 p-3 text-white hover:bg-white/20 rounded-full transition-colors"
+                className="absolute left-2 p-3 text-white hover:bg-white/20 rounded-full transition-colors z-10"
                 aria-label="上一张"
               >
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +155,7 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
             <img
               src={photos[currentImageIndex]}
               alt={`照片 ${currentImageIndex + 1}`}
-              className="max-w-full max-h-[85vh] object-contain"
+              className="max-w-full max-h-full object-contain w-full h-full"
               onClick={(e) => e.stopPropagation()}
             />
 
@@ -160,7 +165,7 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
                   e.stopPropagation();
                   goToNextImage();
                 }}
-                className="absolute right-4 p-3 text-white hover:bg-white/20 rounded-full transition-colors"
+                className="absolute right-2 p-3 text-white hover:bg-white/20 rounded-full transition-colors z-10"
                 aria-label="下一张"
               >
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +176,7 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
           </div>
 
           {photos.length > 1 && (
-            <div className="absolute bottom-8 flex gap-2">
+            <div className="flex justify-center gap-2 py-4 bg-black/50">
               {photos.map((_, index) => (
                 <button
                   key={index}
@@ -179,18 +184,14 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
                     e.stopPropagation();
                     setCurrentImageIndex(index);
                   }}
-                  className={`w-3 h-3 rounded-full transition-colors ${
-                    index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentImageIndex ? 'bg-white' : 'bg-white/40'
                   }`}
                   aria-label={`跳转到第 ${index + 1} 张`}
                 />
               ))}
             </div>
           )}
-
-          <div className="absolute bottom-4 text-white/70 text-sm">
-            {currentImageIndex + 1} / {photos.length}
-          </div>
         </div>
       )}
     </>

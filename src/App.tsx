@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
+import { TimeInfo } from './components/TimeInfo';
 import { HomePage } from './pages/HomePage';
 import { AddEntryPage } from './pages/AddEntryPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -287,6 +288,7 @@ function App() {
             onHistoryClick={() => setCurrentTab('growth')}
             showHistoryButton={entries.length > 0}
           />
+          <TimeInfo settings={settings} />
           <HomePage
             entries={entries}
             onAddClick={() => setCurrentPage('add')}
