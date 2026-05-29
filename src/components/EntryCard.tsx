@@ -45,31 +45,38 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
         onClick={() => onClick(entry)}
       >
         {photos.length > 0 && (
-          <div className="flex overflow-x-auto gap-1 p-3 pb-0 scrollbar-hide">
-            {displayPhotos.map((url, index) => (
-              <div
-                key={index}
-                className={`flex-shrink-0 w-32 h-32 rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative ${
-                  index === MAX_PHOTOS - 1 && remainingCount > 0 ? 'relative' : ''
-                }`}
-                onClick={(e) => handlePhotoClick(index, e)}
-              >
-                <img
-                  src={url}
-                  alt={`照片 ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                {index === MAX_PHOTOS - 1 && remainingCount > 0 && (
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                    <span className="text-white text-2xl font-bold">+{remainingCount}</span>
-                  </div>
-                )}
-                <span className="absolute bottom-1 left-1 bg-black/40 text-white text-xs px-1.5 py-0.5 rounded">
-                  {index + 1}
-                </span>
+          <div className="relative">
+            <div className="flex overflow-x-auto gap-2 p-3 pb-0 scrollbar-hide snap-x snap-mandatory">
+              {displayPhotos.map((url, index) => (
+                <div
+                  key={index}
+                  className={`flex-shrink-0 w-28 h-28 rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative snap-start ${
+                    index === MAX_PHOTOS - 1 && remainingCount > 0 ? 'relative' : ''
+                  }`}
+                  onClick={(e) => handlePhotoClick(index, e)}
+                >
+                  <img
+                    src={url}
+                    alt={`照片 ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  {index === MAX_PHOTOS - 1 && remainingCount > 0 && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <span className="text-white text-2xl font-bold">+{remainingCount}</span>
+                    </div>
+                  )}
+                  <span className="absolute bottom-1 left-1 bg-black/40 text-white text-xs px-1.5 py-0.5 rounded">
+                    {index + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {photos.length > 3 && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 text-white text-xs px-2 py-1 rounded-full">
+                ›
               </div>
-            ))}
+            )}
           </div>
         )}
         <div className="flex items-center gap-4 p-4">
@@ -110,8 +117,11 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
 
       {showImageViewer && (
         <div
-          className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center"
+          className="fixed inset-0 bg-black/95 z-[100] flex flex-col items-center justify-center touch-none"
           onClick={closeImageViewer}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
         >
           <button
             onClick={closeImageViewer}
@@ -140,7 +150,7 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
             <img
               src={photos[currentImageIndex]}
               alt={`照片 ${currentImageIndex + 1}`}
-              className="max-w-full max-h-[80vh] object-contain"
+              className="max-w-full max-h-[85vh] object-contain"
               onClick={(e) => e.stopPropagation()}
             />
 

@@ -194,6 +194,9 @@ function App() {
     setUser(null);
     setSettings(null);
     setEntries([]);
+    localStorage.removeItem('baby_settings');
+    localStorage.removeItem('baby_entries');
+    localStorage.removeItem('baby_profile');
     setCurrentTab('home');
     setCurrentPage('home');
   }, []);

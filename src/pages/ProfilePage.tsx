@@ -22,6 +22,8 @@ const PROFILE_FIELD_MAP: Record<string, string> = {
   babyGender: 'baby_gender',
 };
 
+const PROFILE_CACHE_KEY = 'baby_profile';
+
 export const ProfilePage = ({
   userId,
   userEmail,
@@ -31,9 +33,18 @@ export const ProfilePage = ({
   onUpdateBirthDate,
   onFamilyClick,
 }: ProfilePageProps) => {
-  const [profile, setProfile] = useState<Profile>({
-    babyName: '',
-    babyGender: '',
+  const [profile, setProfile] = useState<Profile>(() => {
+    const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.userId === userId) {
+        return {
+          babyName: parsed.babyName || '',
+          babyGender: parsed.babyGender || '',
+        };
+      }
+    }
+    return { babyName: '', babyGender: '' };
   });
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
@@ -54,16 +65,20 @@ export const ProfilePage = ({
       .eq('user_id', userId)
       .maybeSingle();
     if (data) {
-      setProfile({
+      const p = {
         babyName: data.baby_name || '',
         babyGender: data.baby_gender || '',
-      });
+      };
+      setProfile(p);
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ userId, ...p }));
     }
   };
 
   const saveProfile = async (field: string, value: string) => {
     const dbField = PROFILE_FIELD_MAP[field] || field;
-    setProfile((prev) => ({ ...prev, [field]: value }));
+    const newProfile = { ...profile, [field]: value };
+    setProfile(newProfile);
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ userId, ...newProfile }));
     setEditingField(null);
     const { error } = await supabase
       .from('profiles')

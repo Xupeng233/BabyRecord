@@ -8,7 +8,36 @@ interface HeaderProps {
   showHistoryButton?: boolean;
 }
 
+const calculateDaysOld = (birthDate: string): number => {
+  const birth = new Date(birthDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  birth.setHours(0, 0, 0, 0);
+  const diffTime = today.getTime() - birth.getTime();
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+};
+
+const formatCurrentDate = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  return `${year}年${month}月${day}日`;
+};
+
+const formatBirthDate = (birthDate: string): string => {
+  const birth = new Date(birthDate);
+  const year = birth.getFullYear();
+  const month = birth.getMonth() + 1;
+  const day = birth.getDate();
+  return `${year}年${month}月${day}日`;
+};
+
 export const Header = ({ settings, onSettingsClick, onHistoryClick, showHistoryButton = true }: HeaderProps) => {
+  const daysOld = settings?.birthDate ? calculateDaysOld(settings.birthDate) : 0;
+  const currentDate = formatCurrentDate();
+  const birthDateFormatted = settings?.birthDate ? formatBirthDate(settings.birthDate) : '';
+
   return (
     <header className="bg-gradient-to-r from-primary-500 to-accent-500 text-white px-4 py-6 shadow-lg">
       <div className="flex items-center justify-between">
@@ -19,9 +48,17 @@ export const Header = ({ settings, onSettingsClick, onHistoryClick, showHistoryB
           <div>
             <h1 className="text-xl font-bold">宝宝成长记录</h1>
             {settings && (
-              <p className="text-sm text-white/80">
-                出生日期: {settings.birthDate}
-              </p>
+              <>
+                <p className="text-sm text-white/80 mt-1">
+                  出生时间：{birthDateFormatted}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm text-white/80">当前时间：{currentDate}</span>
+                  <span className="text-sm text-white font-medium bg-white/20 px-2 py-0.5 rounded-full">
+                    {daysOld}天
+                  </span>
+                </div>
+              </>
             )}
           </div>
         </div>
