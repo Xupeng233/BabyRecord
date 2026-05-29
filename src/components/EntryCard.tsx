@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { Trash2, ChevronRight, X } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { Entry } from '../types';
 import { useAgeCalculator } from '../hooks/useAgeCalculator';
+import { ImageViewer } from './ImageViewer';
 
 interface EntryCardProps {
   entry: Entry;
@@ -14,8 +15,6 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
   const photos = entry.photoUrls || [];
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
 
   const MAX_PHOTOS = 9;
   const displayPhotos = photos.slice(0, MAX_PHOTOS);
@@ -30,46 +29,7 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
 
   const closeImageViewer = () => {
     setShowImageViewer(false);
-    setCurrentImageIndex(0);
     document.body.style.overflow = '';
-  };
-
-  useEffect(() => {
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
-  const goToNextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % photos.length);
-  };
-
-  const goToPrevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + photos.length) % photos.length);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    const diff = touchStartX.current - touchEndX.current;
-    const threshold = 50;
-    
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        goToNextImage();
-      } else {
-        goToPrevImage();
-      }
-    }
-    
-    touchStartX.current = 0;
-    touchEndX.current = 0;
   };
 
   return (
@@ -80,7 +40,7 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
       >
         {photos.length > 0 && (
           <div className="relative">
-            <div 
+            <div
               className="flex overflow-x-auto gap-2 p-3 pb-0 scrollbar-hide"
               style={{ WebkitOverflowScrolling: 'touch', overflowX: 'auto' }}
               onClick={(e) => e.stopPropagation()}
@@ -137,119 +97,16 @@ export const EntryCard = ({ entry, onDelete, onClick }: EntryCardProps) => {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(entry.id);
-              }}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-              aria-label="删除记录"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-            <ChevronRight className="w-5 h-5 text-gray-300" />
-          </div>
+          <ChevronRight className="w-5 h-5 text-gray-300" />
         </div>
       </div>
 
       {showImageViewer && (
-        <div
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black z-[100] flex flex-col"
-          style={{ 
-            height: window.innerHeight,
-            width: window.innerWidth,
-            overscrollBehavior: 'none',
-            touchAction: 'none',
-            position: 'fixed',
-            top: '-env(safe-area-inset-top)',
-            left: 0,
-            right: 0,
-            bottom: '-env(safe-area-inset-bottom)',
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)'
-          }}
-          onClick={closeImageViewer}
-        >
-          <div className="flex items-center justify-between px-4 py-3 bg-black/50 shrink-0">
-            <div className="text-white text-sm">
-              {currentImageIndex + 1} / {photos.length}
-            </div>
-            <button
-              onClick={closeImageViewer}
-              className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-              aria-label="关闭"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div 
-            className="flex-1 flex items-center justify-center relative overflow-hidden"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {photos.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToPrevImage();
-                }}
-                className="absolute left-4 p-3 text-white hover:bg-white/20 rounded-full transition-colors z-10"
-                aria-label="上一张"
-              >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-
-            <img
-              src={photos[currentImageIndex]}
-              alt={`照片 ${currentImageIndex + 1}`}
-              className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-
-            {photos.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToNextImage();
-                }}
-                className="absolute right-4 p-3 text-white hover:bg-white/20 rounded-full transition-colors z-10"
-                aria-label="下一张"
-              >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {photos.length > 1 && (
-            <div 
-              className="absolute left-0 right-0 flex justify-center gap-2"
-              style={{ bottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
-            >
-              {photos.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(index);
-                  }}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentImageIndex ? 'bg-white' : 'bg-white/40'
-                  }`}
-                  aria-label={`跳转到第 ${index + 1} 张`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <ImageViewer
+          images={photos}
+          initialIndex={currentImageIndex}
+          onClose={closeImageViewer}
+        />
       )}
     </>
   );
