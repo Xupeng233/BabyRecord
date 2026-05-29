@@ -38,18 +38,17 @@ export const TimeInfo = ({ settings }: TimeInfoProps) => {
 
   return (
     <div className="bg-gradient-to-r from-primary-50 to-accent-50 px-4 py-3 border-b border-gray-100">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">出生时间：</span>
-            <span className="text-sm font-medium text-gray-800">{birthDateFormatted}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">当前时间：</span>
-            <span className="text-sm font-medium text-gray-800">{currentDate}</span>
-          </div>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">出生时间：</span>
+          <span className="text-sm font-medium text-gray-800">{birthDateFormatted}</span>
         </div>
         <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">当前时间：</span>
+          <span className="text-sm font-medium text-gray-800">{currentDate}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">当前日龄：</span>
           <span className="text-lg font-bold text-primary-600">{daysOld}</span>
           <span className="text-sm text-gray-600">天</span>
         </div>
